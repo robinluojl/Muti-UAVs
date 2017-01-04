@@ -102,7 +102,7 @@ set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES dji_sdk_demo
-#  CATKIN_DEPENDS dji_sdk roscpp 
+#  CATKIN_DEPENDS dji_sdk roscpp
 #  DEPENDS dji_sdk
 )
 
@@ -114,6 +114,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
+  include
  	${catkin_INCLUDE_DIRS}
 )
 
@@ -138,7 +139,8 @@ include_directories(
 # target_link_libraries(dji_sdk_demo_node
 #   ${catkin_LIBRARIES}
 # )
-add_executable(dji_sdk_client src/client.cpp)
+add_executable(dji_sdk_client src/client.cpp
+                src/major.cpp)
 target_link_libraries(dji_sdk_client
   ${catkin_LIBRARIES}
 )
