@@ -5,6 +5,7 @@ MajorNode::MajorNode(ros::NodeHandle& nh)
   drone = new DJIDrone(nh);
   f_InitShakeAck = 0;
   f_LocalFrame = 0;
+  f_NewShapeOk = 0;
   delta_posi.x = 0;delta_posi.y = 0;delta_posi.z = 0;
 
   init_subscriber(nh);
@@ -20,6 +21,7 @@ void MajorNode::init_subscriber(ros::NodeHandle& nh)
 {
   InitShakeAck_sub = nh.subscribe<std_msgs::Empty>("GS/InitShakeAck",10,&MajorNode::InitShakeAck_sub_callback,this);
   LocalFrame_sub = nh.subscribe<GPS>("GS/LocalFrame",10,&MajorNode::LocalFrame_sub_callback,this);
+  ShapeConfig_sub = nh.subscribe<ShapeConfig>("GS/ShapeConfig",10,&MajorNode::ShapeConfig_sub_callback,this);
 }
 
 void MajorNode::init_publisher(ros::NodeHandle& nh)
@@ -40,6 +42,46 @@ void MajorNode::LocalFrame_sub_callback(GPS tmp)
   f_LocalFrame = 1;
 }
 
+void MajorNode::ShapeConfig_sub_callback(ShapeConfig tmp)
+{
+  Ack ack_tmp;ack_tmp.msgID = 0x43;ack_tmp.targetID = 0x00;     //ShapeConfigAck
+
+  static int f_updating_count = 0;
+  if(tmp.i== tmp.j && f_updating_count == 0)        //开始存储队形数据
+  {
+    shape_temp.clear();                         //清除缓冲区
+    shape_temp.total_num = tmp.totol_uav_num;
+    shape_temp.lead_id = tmp.i;
+    shape_temp.uavID_serial[0] = tmp.i;
+    f_updating_count++;
+  }
+  else if(f_updating_count!=0 && tmp.i != tmp.j)
+  {
+    shape_temp.uavID_serial[f_updating_count] = tmp.j;
+
+    shape_temp.shape_matrix[tmp.i][tmp.j].x = tmp.x;
+    shape_temp.shape_matrix[tmp.i][tmp.j].y = tmp.y;
+    shape_temp.shape_matrix[tmp.i][tmp.j].z = tmp.z;
+    shape_temp.shape_matrix[tmp.i][tmp.j].fi = tmp.fi;
+
+    f_updating_count++;
+    //判断计数是否达到,数组收全
+    if(f_updating_count>=shape_temp.total_num)
+    {
+      /*检查队形数据的完整性*/
+      f_updating_count = 0;
+      f_NewShapeOk = 1;
+      Ack_pub.publish(ack_tmp);
+    }
+  }
+  else              //error
+  {
+    shape_temp.clear();
+    f_updating_count = 0;
+  }
+
+}
+
 void MajorNode::publish_InitShake(void)
 {
   GPS tmp;
@@ -51,7 +93,7 @@ void MajorNode::publish_InitShake(void)
   do
   {
     InitShake_pub.publish(tmp);
-    sleep(2);
+    sleep(0.5);
     ros::spinOnce();
   }while(f_InitShakeAck==0);
 
@@ -65,11 +107,20 @@ void MajorNode::publish_LocalFramAck(void)
 
   do{
     ros::spinOnce();
-    sleep(2);
+    sleep(0.5);
   }while(f_LocalFrame == 0);
 
   Ack_pub.publish(tmp);
   f_LocalFrame = 0;
+}
+
+void MajorNode::wait_newshape(void)
+{
+  while(f_NewShapeOk == 0)
+  {
+    ros::spinOnce();
+    sleep(0.5);
+  }
 }
 
 void MajorNode::gps_convert_ned(float &ned_x, float &ned_y,

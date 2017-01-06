@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
 {
   //初始化过程
   ros::init(argc, argv, "sdk_client");
-  ROS_INFO("sdk_service_client_test");
+  ROS_INFO("multi UAV system");
   ros::NodeHandle nh;
   major_node = new MajorNode(nh);
 
@@ -32,6 +32,11 @@ int main(int argc, char *argv[])
     major_node->drone->global_position_ref.longitude,major_node->drone->global_position_ref.latitude,
     major_node->LocalFrame_value.longitude,major_node->LocalFrame_value.latitude
   );
+  major_node->wait_newshape();          //等待初次队形接收OK
+  ROS_INFO("multi_UAV system initialization finished");
+
+  
+
 
   return 0;
 }
