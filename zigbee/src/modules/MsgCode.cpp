@@ -128,10 +128,38 @@ int encode_TakeOff(Posi tmp,unsigned char uavID,unsigned char *a)
 
 	a[length] = msgID_TakeOff; length++;		//message ID
 
-	//EncodeFloatData(&tmp.x, a+length);length+=4;           //无用
-	//EncodeFloatData(&tmp.y, a+length);length+=4;           //无用
 	EncodeFloatData(&tmp.z, a+length);length+=4;             //起飞命令只有高度有效
-	//EncodeFloatData(&tmp.fi, a+length);length+=4;          //无用
+
+  /**补上data length**/
+  a[1] = (unsigned char)length-3;
+  ////计算校验和//////
+  a[length]=CountSum(a,length);length++;
+
+	return length;
+}
+
+int encode_Meet(ShapeConfig tmp,unsigned char uavID,unsigned char *a)
+{
+  int length = 0;
+
+	a[length] = 0xFD;  length++;							//包头
+	a[length] = 0;   	length++;								//data length
+
+  if(uavID!=0xff)
+  {
+    EncodeU16Data(&map_id[uavID].ZigbeeID, a+length);length+=2;		//uav对应的zigbee短地址
+  }
+  else
+  {
+    a[length] = 0xff;  length++;
+    a[length] = 0xff; length++;
+  }
+
+	a[length] = msgID_Meet; length++;		//message ID
+	EncodeFloatData(&tmp.x, a+length);length+=4;           //无用
+	EncodeFloatData(&tmp.y, a+length);length+=4;           //无用
+	EncodeFloatData(&tmp.z, a+length);length+=4;             //起飞命令只有高度有效
+	EncodeFloatData(&tmp.fi, a+length);length+=4;          //无用
 
   /**补上data length**/
   a[1] = (unsigned char)length-3;
@@ -246,6 +274,16 @@ void decode_TakeOff(Posi &tmp,unsigned char *a)
 	//DecodeFloatData(&tmp.y,a+length);length+=4;
 	DecodeFloatData(&tmp.z,a+length);length+=4;
 	//DecodeFloatData(&tmp.fi,a+length);length+=4;
+}
+
+void decode_Meet(ShapeConfig &tmp,unsigned char *a)
+{
+  int length = 5;
+
+	DecodeFloatData(&tmp.x,a+length);length+=4;
+	DecodeFloatData(&tmp.y,a+length);length+=4;
+	DecodeFloatData(&tmp.z,a+length);length+=4;
+	DecodeFloatData(&tmp.fi,a+length);length+=4;
 }
 
 

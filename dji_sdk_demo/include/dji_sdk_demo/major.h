@@ -2,10 +2,11 @@
 #define _MAJOR_H
 
 #include <ros/ros.h>
-#include <dji_sdk/dji_drone.h>
+
 #include <math.h>
 #include <iostream>
 #include <memory.h>
+
 
 
 #include "zigbee/GPS.h"
@@ -15,6 +16,9 @@
 #include "zigbee/Ack.h"
 #include "zigbee/Attitude.h"
 
+#include "dji_sdk_demo/user_type.h"
+#include "dji_sdk_demo/shape.h"
+
 using namespace std;
 using namespace zigbee;
 
@@ -22,53 +26,32 @@ using namespace zigbee;
 #define C_PI (double) 3.141592653589793
 #define DEG2RAD(DEG) ((DEG)*((C_PI)/(180.0)))
 
-typedef struct SHAPE_MATRIX
-{
-  float x;
-  float y;
-  float z;
-  float fi;
-}SHAPE_MATRIX;
-
-class SHAPE{
-public:
-  int total_num = 0;
-  int lead_id = 0;
-  int uavID_serial[10];         //记录
-  SHAPE_MATRIX shape_matrix[10][10];
-
-  void clear(void)
-  {
-    int total_num = 0;
-    int lead_id = 0;
-    for(int i=0;i<10;i++)
-    {
-      uavID_serial[i]=0;
-    }
-    memset(shape_matrix,0,sizeof(shape_matrix));
-  }
-};
 
 class MajorNode
 {
 public:
-  DJIDrone* drone;
+  Posi delta_posi;
+  FLY_MODE fly_mode = Mode_Null;              //模式
+  Posi local_pos_now;                         //本机在LocalFrame下的坐标，在Drone的local_position_callback中被实时更新
+  SHAPE_MATRIX local_pos_lock;                //要锁定的位置
 
-  SHAPE shape_temp;             //队形信息二级缓冲
+  SHAPE shape_buf;                            //队形信息临时缓冲
+  SHAPE_MANAGE shape_manage;                  //当前队形管理类，包含队形数据以及操作函数等
+  SHAPE_MATRIX Meet_TargetPosi;                //本机的目标会和点
 
   //flag
-  int f_InitShakeAck;
-  int f_LocalFrame;
-  int f_NewShapeOk;
+  int f_InitShakeAck = 0;
+  int f_LocalFrame = 0;
+  int f_MeetOK = 0;
+
 
 public:
   //value
-  Posi delta_posi;
-
   GPS LocalFrame_value;
 	ShapeConfig ShapeConfig_value;
 	Posi TakeOff_value;
-	Ack NoArguCmd_value;
+  SHAPE_MATRIX Meet_value;
+//	Ack NoArguCmd_value;
 
 	// Posi OtherPosi_value;
 	// Posi OtherVel_value;
@@ -78,6 +61,7 @@ public:
 	ros::Subscriber LocalFrame_sub;
 	ros::Subscriber ShapeConfig_sub;
 	ros::Subscriber TakeOff_sub;
+  ros::Subscriber Meet_sub;
 	ros::Subscriber NoArguCmd_sub;
 
 	// ros::Subscriber OtherPosi_sub;
@@ -88,6 +72,9 @@ public:
   void InitShakeAck_sub_callback(std_msgs::Empty tmp);
   void LocalFrame_sub_callback(GPS tmp);
   void ShapeConfig_sub_callback(ShapeConfig tmp);
+  void TakeOff_sub_callback(Posi tmp);
+  void Meet_sub_callback(ShapeConfig tmp);
+  void NoArguCmd_sub_callback(Ack tmp);
 /*********************************************/
 private:
   ros::Publisher InitShake_pub;
@@ -101,15 +88,17 @@ private:
   void init_publisher(ros::NodeHandle& nh);
   void init_subscriber(ros::NodeHandle& nh);
 
-
+  void gps_convert_ned(float &ned_x, float &ned_y,
+  double gps_t_lon, double gps_t_lat,
+  double gps_r_lon, double gps_r_lat);
 
 public:
   void publish_InitShake(void);
   void publish_LocalFramAck(void);
   void wait_newshape(void);
-  void gps_convert_ned(float &ned_x, float &ned_y,
-  double gps_t_lon, double gps_t_lat,
-  double gps_r_lon, double gps_r_lat);
+  //动作函数
+  void TakeOff(void);
+  void Meet(void);
 
   MajorNode(ros::NodeHandle& nh);
   ~MajorNode();

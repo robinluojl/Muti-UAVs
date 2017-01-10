@@ -93,6 +93,7 @@ void ZigbeeNode::init_publisher(ros::NodeHandle& nh)
 	LocalFrame_pub = nh.advertise<GPS>("GS/LocalFrame",10);
 	ShapeConfig_pub = nh.advertise<ShapeConfig>("GS/ShapeConfig",10);
 	TakeOff_pub = nh.advertise<Posi>("GS/TakeOff",10);
+	Meet_pub = nh.advertise<ShapeConfig>("GS/Meet",10);
 	NoArguCmd_pub = nh.advertise<Ack>("GS/NoArguCmd",10);
 
 	OtherPosi_pub = nh.advertise<Posi>("UAV/OtherPosi",10);
@@ -200,6 +201,9 @@ void ZigbeeNode::HandleData(SDKFilter *a)
 				TakeOff_pub.publish(TakeOff_value);
 				break;
 			case msgID_Meet:																	//这些命令必然来自地面站
+				decode_Meet(Meet_value,a->recvBuf);
+				Meet_pub.publish(Meet_value);
+				break;
 			case msgID_Fly:
 			case msgID_Stop:
 			case msgID_Return:

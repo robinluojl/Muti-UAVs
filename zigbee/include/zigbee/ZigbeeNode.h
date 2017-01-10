@@ -32,6 +32,7 @@ private:
 	GPS LocalFrame_value;
 	ShapeConfig ShapeConfig_value;
 	Posi TakeOff_value;
+	ShapeConfig Meet_value;
 	Ack NoArguCmd_value;
 
 	Posi OtherPosi_value;
@@ -42,6 +43,7 @@ private:
 	ros::Publisher LocalFrame_pub;
 	ros::Publisher ShapeConfig_pub;
 	ros::Publisher TakeOff_pub;
+	ros::Publisher Meet_pub;
 	ros::Publisher NoArguCmd_pub;
 
 	ros::Publisher OtherPosi_pub;

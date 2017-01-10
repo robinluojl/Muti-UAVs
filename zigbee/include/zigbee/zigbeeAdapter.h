@@ -46,7 +46,7 @@ static void* SerialThread(void* param)
 		p_adapter->readPoll();
 		p_adapter->sendPoll();
 		//cout<<'!'<<endl;
-		usleep(100000);
+		usleep(1000);
 	}
 }
 

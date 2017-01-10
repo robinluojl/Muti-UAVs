@@ -59,6 +59,7 @@ int encode_InitShake(GPS Tmp, unsigned char *a);
 int encode_LocalFrame(GPS Tmp,unsigned char uavID,unsigned char *a);
 int encode_ShapeConfig(ShapeConfig tmp,unsigned char uavID,unsigned char *a);
 int encode_TakeOff(Posi tmp,unsigned char uavID,unsigned char *a);
+int encode_Meet(ShapeConfig tmp,unsigned char uavID,unsigned char *a);
 int encode_NoArguCmd(unsigned char msgID,unsigned char uavID,unsigned char *a);
 
 int encode_CmdAck(unsigned char msgID,unsigned char targetID,unsigned char *a);
@@ -67,6 +68,7 @@ void decode_InitShake(GPS &Tmp,unsigned char *a);
 void decode_LocalFrame(GPS &Tmp,unsigned char *a);
 void decode_ShapeConfig(ShapeConfig &tmp,unsigned char *a);
 void decode_TakeOff(Posi &tmp,unsigned char *a);
+void decode_Meet(ShapeConfig &tmp,unsigned char *a);
 /******************************************************/
 
 int encode_Posi(Posi tmp,unsigned char *a);
