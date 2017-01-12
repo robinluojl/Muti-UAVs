@@ -1,7 +1,6 @@
 #include "dji_sdk_demo/major.h"
 #include <dji_sdk/dji_drone.h>
-#include "../../zigbee/include//zigbee/MsgCode.h"
-//#include "zigbee/MsgCode.h"
+#include <zigbee/MsgCode.h>
 
 extern DJIDrone* drone;
 
@@ -100,7 +99,15 @@ void MajorNode::ShapeConfig_sub_callback(ShapeConfig tmp)
 void MajorNode::TakeOff_sub_callback(Posi tmp)
 {
   TakeOff_value = tmp;
-  if(fly_mode == Mode_Null)fly_mode = Mode_TakeOff;
+  if(fly_mode == Mode_Null)         //只能在停在地面时起飞指令有效
+  {
+    fly_mode = Mode_TakeOff;
+    update_local_pos_now();
+    local_pos_lock.x = local_pos_now.x;
+    local_pos_lock.y = local_pos_now.y;
+    local_pos_lock.z = local_pos_now.z;
+  }
+
 }
 
 void MajorNode::Meet_sub_callback(ShapeConfig tmp)
@@ -121,6 +128,7 @@ void MajorNode::NoArguCmd_sub_callback(Ack tmp)
       break;
     case msgID_Stop:
       fly_mode = Mode_Stop;
+
       //使用当前位置更新local_pos_lock
       break;
     case msgID_Return:
@@ -177,35 +185,19 @@ void MajorNode::wait_newshape(void)
 //从当前位置起飞到一定高度
 void MajorNode::TakeOff(void)
 {
-  static int f_TmpForTakeoff = 0;       //强制stop时，清除该标志存在bug------bug
-  float x,y,z;
-  if(f_TmpForTakeoff==0)                //记录初始位置
-  {
-    x = drone->local_position.x;
-    y = drone->local_position.y;
-    z = drone->local_position.z;
-    f_TmpForTakeoff = 1;
-  }
-  //计算飞机位置并更新
-
-  // //1m/s速度
-  // int k = abs(TakeOff_value.z - drone->local_position.z)/0.02;
-  //
-  // for(int i=0;i<k;i++){
-  // z = (z_tmp < TakeOff_value.z)?(z+0.02):(z-0.02);
-  // drone->local_position_control(x ,y ,z, 0);
-  // usleep(20000);
-  // }
+  update_local_pos_now();
 
   float tmp = (local_pos_now.z - TakeOff_value.z)*(local_pos_now.z - TakeOff_value.z);
-  if(tmp<0.5)
+  if(tmp<0.5)     //距离目标起飞高度小于阈值，则自动切换模式至Stop模式
   {
-    local_pos_lock.x = x;
-    local_pos_lock.y = y;
-    local_pos_lock.x = TakeOff_value.z;
+    local_pos_lock.z = TakeOff_value.z;
     fly_mode = Mode_Stop;
-    f_TmpForTakeoff = 0;
   }
+  else                                        //计算飞机位置并更新
+  {
+      local_pos_lock.z = (local_pos_now.z < TakeOff_value.z)?(local_pos_now.z + 0.01):(local_pos_now.z - 0.01);   //结合usleep的时间，约为0.5m/s的垂直速度
+  }
+  local_pos_control(local_pos_lock,0);
 }
 
 //静态集结的功能函数
@@ -220,20 +212,66 @@ void MajorNode::Meet(void)
     //（计算）本机的理想汇合点
     Meet_TargetPosi = (shape_manage.OwnID == shape_manage.shape_real.lead_id)?Meet_value:(Meet_value + shape_manage.IdealDelta_with_leader);
   }
-  //计算位置并更新
-
-  //判断是否到达meet位置
-  float tmp = (local_pos_now.x - Meet_TargetPosi.x)*(local_pos_now.x - Meet_TargetPosi.x) +
-              (local_pos_now.y - Meet_TargetPosi.y)*(local_pos_now.y - Meet_TargetPosi.y) +
-              (local_pos_now.z - Meet_TargetPosi.z)*(local_pos_now.z - Meet_TargetPosi.z);
-  if(tmp<=0.5)      //距离小于一定阈值认为到达
+  update_local_pos_now();
+  /********计算位置并更新 ****************/
+  /*暂时采用先水平移动再垂直运动的会和策略*/
+  /*此段代码可用会和算法替代*/
+  //x方向
+  float tmp1 = (local_pos_now.x - Meet_TargetPosi.x)*(local_pos_now.x - Meet_TargetPosi.x);
+  if(tmp1>0.5)
+    local_pos_lock.x = (local_pos_now.x < Meet_TargetPosi.x)?(local_pos_now.x + 0.01):(local_pos_now.x - 0.01);
+  else
+    local_pos_lock.x = Meet_TargetPosi.x;
+  //y方向
+  float tmp2 = (local_pos_now.y - Meet_TargetPosi.y)*(local_pos_now.y - Meet_TargetPosi.y);
+  if(tmp2>0.5)
+    local_pos_lock.y = (local_pos_now.y < Meet_TargetPosi.y)?(local_pos_now.y + 0.01):(local_pos_now.y - 0.01);
+  else
+    local_pos_lock.y = Meet_TargetPosi.x;
+  //z方向
+  float tmp =  tmp1 + tmp2;
+  if(tmp<1)         //水平方向到达预定位置(小于阈值)
   {
-    local_pos_lock = Meet_TargetPosi;
-    fly_mode = Mode_Stop;                   //退出Meet模式
+    float tmp3 = (local_pos_now.z - Meet_TargetPosi.z)*(local_pos_now.z - Meet_TargetPosi.z);
+    if(tmp3<0.5)     //垂直方向距离差小于阈值
+    {
+      local_pos_lock.x = Meet_TargetPosi.x;
+      local_pos_lock.y = Meet_TargetPosi.y;
+      local_pos_lock.z = Meet_TargetPosi.z;
+      fly_mode = Mode_Stop;                   //退出Meet模式
+    }
+    else
+    {
+      local_pos_lock.z = (local_pos_now.z < Meet_TargetPosi.z)?(local_pos_now.z + 0.01):(local_pos_now.z - 0.01);
+    }
   }
+  local_pos_control(local_pos_lock,0);
+  /**************************************/
+}
 
+//将飞机的局部坐标系坐标转换到多机LocalFrame下
+void MajorNode::update_local_pos_now(void)
+{
+ local_pos_now.x = drone->local_position.x + delta_posi.x;
+ local_pos_now.y = drone->local_position.y + delta_posi.y;
+ local_pos_now.z = drone->local_position.z + delta_posi.z;
 
+}
 
+//由多机LocalFrame下坐标计算在本机的局部坐标系下坐标
+Posi MajorNode::count_OwnLocal_position(Posi tmp)
+{
+  Posi ret;
+  ret.x = tmp.x - delta_posi.x;
+  ret.y = tmp.y - delta_posi.y;
+  ret.z = tmp.z - delta_posi.z;
+  return ret;
+}
+
+void MajorNode::local_pos_control(Posi tmp,float fi)
+{
+  Posi tmp1 = count_OwnLocal_position(tmp);   //坐标转换
+  drone->local_position_control(tmp1.x,tmp1.y,tmp1.z,fi);
 }
 
 void MajorNode::gps_convert_ned(float &ned_x, float &ned_y,

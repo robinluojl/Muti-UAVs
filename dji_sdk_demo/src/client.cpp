@@ -26,9 +26,15 @@ static void* Thread_1(void* param)
       case Mode_Meet:
         p_tmp->Meet();
       break;
+      case Mode_Fly:
+
+      break;
       case Mode_Stop:
-        //锁定在固定位置
-        //drone->local_position_control(major_node->local_pos_lock.x ,major_node->local_pos_lock.y ,major_node->local_pos_lock.z, major_node->local_pos_lock.fi);
+        p_tmp->local_pos_control(p_tmp->local_pos_lock,0);     //fi角就先设为0吧
+      break;
+      case Mode_Return:
+      break;
+      case Mode_Land:
       break;
       default:
       break;

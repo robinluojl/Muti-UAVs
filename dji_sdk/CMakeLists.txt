@@ -5,9 +5,9 @@ option(GTEST "Build with Google Test framework" OFF)
 
 # Add module path for <name>.cmake conf files
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/Onboard-SDK-ROS/contrib)
-if (GTEST) 
+if (GTEST)
 include(${CMAKE_MODULE_PATH}/External_GTest.cmake)
-endif () 
+endif ()
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -19,7 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
-  actionlib_msgs 
+  actionlib_msgs
   actionlib
   dji_sdk_lib
 )
@@ -143,7 +143,7 @@ add_action_files(
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
-  geometry_msgs 
+  geometry_msgs
   nav_msgs
   std_msgs
   actionlib_msgs
@@ -184,10 +184,10 @@ include_directories(
 
 ## Declare a cpp executable
 add_executable(dji_sdk_node
-  src/dji_sdk_node.cpp 
-  src/modules/dji_sdk_node_actions.cpp 
-  src/modules/dji_sdk_node_services.cpp 
-  src/modules/dji_sdk_node_main.cpp 
+  src/dji_sdk_node.cpp
+  src/modules/dji_sdk_node_actions.cpp
+  src/modules/dji_sdk_node_services.cpp
+  src/modules/dji_sdk_node_main.cpp
   src/modules/dji_sdk_node_mission.cpp
 )
 
@@ -290,5 +290,3 @@ install(DIRECTORY launch
 #   # myfile2
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
-
-

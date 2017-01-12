@@ -4,11 +4,10 @@
   <version>0.1.9</version>
   <description>The dji_sdk_demo package</description>
 
-  <!-- One maintainer tag required, multiple allowed, one person per tag --> 
+  <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="norman.li@dji.com">Norman Li</maintainer>
-  <maintainer email="me@botao.hu">Botao Hu</maintainer>
+  <maintainer email="whutwei@whu.edu.cn">Tao Wei</maintainer>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
@@ -42,9 +41,11 @@
   <!--   <test_depend>gtest</test_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>dji_sdk</build_depend>
+  <build_depend>zigbee</build_depend>
   <build_depend>roscpp</build_depend>
   <run_depend>dji_sdk</run_depend>
   <run_depend>roscpp</run_depend>
+  <run_depend>zigbee</run_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

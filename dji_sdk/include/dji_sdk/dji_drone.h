@@ -18,7 +18,6 @@
 #include <actionlib/client/terminal_state.h>
 #include <string>
 
-
 class DJIDrone
 {
 private:

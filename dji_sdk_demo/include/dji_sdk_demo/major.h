@@ -32,12 +32,12 @@ class MajorNode
 public:
   Posi delta_posi;
   FLY_MODE fly_mode = Mode_Null;              //模式
-  Posi local_pos_now;                         //本机在LocalFrame下的坐标，在Drone的local_position_callback中被实时更新
-  SHAPE_MATRIX local_pos_lock;                //要锁定的位置
+  Posi local_pos_now;                         //本机在LocalFrame下的坐标，使用之前一定要调用更新函数
+  Posi local_pos_lock;                        //要锁定的位置 x\y\z
 
   SHAPE shape_buf;                            //队形信息临时缓冲
   SHAPE_MANAGE shape_manage;                  //当前队形管理类，包含队形数据以及操作函数等
-  SHAPE_MATRIX Meet_TargetPosi;                //本机的目标会和点
+  SHAPE_MATRIX Meet_TargetPosi;               //本机的目标会和点
 
   //flag
   int f_InitShakeAck = 0;
@@ -99,6 +99,13 @@ public:
   //动作函数
   void TakeOff(void);
   void Meet(void);
+
+//将飞机的局部坐标系坐标转换到多机LocalFrame下
+  void update_local_pos_now(void);
+//由多机LocalFrame下坐标计算在本机的局部坐标系下坐标
+  Posi count_OwnLocal_position(Posi tmp);
+  //通过多机局部坐标系下坐标控制飞机位置
+  void local_pos_control(Posi tmp,float fi);
 
   MajorNode(ros::NodeHandle& nh);
   ~MajorNode();
