@@ -83,7 +83,7 @@ void ZigbeeAdapter::readPoll()
 
 	for (int i = 0; i < read_len; i++)
   {
-		cout<<hex<<(uint16_t)buf[i]<<endl;
+		//cout<<hex<<(uint16_t)buf[i]<<endl;
     byteHandler(buf[i]);			//对每一位数据处理函数
   }
 }

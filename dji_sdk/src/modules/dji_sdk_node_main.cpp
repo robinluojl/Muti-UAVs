@@ -3,7 +3,7 @@
  *  @date July 29th, 2016
  *
  *  @brief
- *  Broadcast and Mobile callbacks are implemented here. 
+ *  Broadcast and Mobile callbacks are implemented here.
  *
  *  @copyright 2016 DJI. All rights reserved.
  *
@@ -34,7 +34,7 @@ void DJISDKNode::broadcast_callback()
 
     static int frame_id = 0;
     frame_id ++;
-   
+
     auto current_time = ros::Time::now();
 
     if(msg_flags & HAS_TIME){
@@ -78,6 +78,7 @@ void DJISDKNode::broadcast_callback()
         if (global_position.ts != 0 && global_position_ref_seted == 0 && global_position.latitude != 0 && global_position.health > 3) {
             global_position_ref = global_position;
             global_position_ref_seted = 1;
+						ROS_INFO("global_position_ref is set");
         }
 
         //update local_position msg
@@ -120,7 +121,7 @@ void DJISDKNode::broadcast_callback()
         acceleration.az = bc_data.a.z;
         acceleration_publisher.publish(acceleration);
     }
-    
+
 
     //update odom msg
     if ( (msg_flags & HAS_POS) && (msg_flags & HAS_Q) && (msg_flags & HAS_W) && (msg_flags & HAS_V) ) {
@@ -276,7 +277,7 @@ void DJISDKNode::broadcast_callback()
         	compass.y = bc_data.mag.y;
         	compass.z = bc_data.mag.z;
         	compass_publisher.publish(compass);
-    	}	
+    	}
 
     	//update flight_status
     	if (msg_flags & HAS_STATUS) {
@@ -325,7 +326,7 @@ int DJISDKNode::init_parameters(ros::NodeHandle& nh_private)
     std::string app_bundle_id; //reserved
     std::string enc_key;
     int uart_or_usb;
-    
+
 
     nh_private.param("serial_name", serial_name, std::string("/dev/ttyTHS1"));
     nh_private.param("baud_rate", baud_rate, 230400);
@@ -376,7 +377,7 @@ int DJISDKNode::init_parameters(ros::NodeHandle& nh_private)
     rosAdapter->activate(&user_act_data, NULL);
     rosAdapter->setBroadcastCallback(&DJISDKNode::broadcast_callback, this);
     rosAdapter->setFromMobileCallback(&DJISDKNode::transparent_transmission_callback,this);
-   
+
     return 0;
 }
 
@@ -422,4 +423,3 @@ dji_sdk::LocalPosition DJISDKNode::gps_convert_ned(dji_sdk::GlobalPosition loc)
     local.z = loc.height;
     return local;
 }
-

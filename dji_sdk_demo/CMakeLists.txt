@@ -141,7 +141,8 @@ include_directories(
 #   ${catkin_LIBRARIES}
 # )
 add_executable(dji_sdk_client src/client.cpp
-                src/major.cpp)
+                src/module/major.cpp
+                src/module/major_ModeAction.cpp)
 target_link_libraries(dji_sdk_client
   ${catkin_LIBRARIES}
 )

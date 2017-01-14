@@ -1,15 +1,35 @@
 #include "dji_sdk_demo/major.h"
-#include <dji_sdk/dji_drone.h>
 #include <zigbee/MsgCode.h>
 
-extern DJIDrone* drone;
 
-MajorNode::MajorNode(ros::NodeHandle& nh)
+const string target_ID_string[10]={"zigbee_target_ID0",
+															"zigbee_target_ID1",
+															"zigbee_target_ID2",
+															"zigbee_target_ID3",
+															"zigbee_target_ID4",
+															"zigbee_target_ID5",
+															"zigbee_target_ID6",
+															"zigbee_target_ID7",
+															"zigbee_target_ID8",
+															"zigbee_target_ID9"
+
+};
+
+MajorNode::MajorNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private)
 {
   delta_posi.x = 0;
   delta_posi.y = 0;
   delta_posi.z = 0;
-
+/***************这一部分和zigbee node 重复，暂时就这样吧****************************/
+  nh_private.param("zigbee_own_ID",shape_manage.OwnID, 0);
+  nh_private.param("zigbee_target_ID_num",shape_manage.target_ID_num, 0);
+  int tmp;
+  for(int i = 0;i<shape_manage.target_ID_num;i++)
+	{
+		nh_private.param(target_ID_string[i],tmp, i);
+    shape_manage.target_ID[i] = (unsigned char)tmp;
+	}
+/******************************************************/
   init_subscriber(nh);
   init_publisher(nh);
 }
@@ -26,7 +46,7 @@ void MajorNode::init_subscriber(ros::NodeHandle& nh)
   ShapeConfig_sub = nh.subscribe<ShapeConfig>("GS/ShapeConfig",10,&MajorNode::ShapeConfig_sub_callback,this);
   TakeOff_sub = nh.subscribe<Posi>("GS/TakeOff",10,&MajorNode::TakeOff_sub_callback,this);
   Meet_sub = nh.subscribe<ShapeConfig>("GS/Meet",10,&MajorNode::Meet_sub_callback,this);
-  NoArguCmd_sub = nh.subscribe<Ack>("GS/NoArgueCmd",10,&MajorNode::NoArguCmd_sub_callback,this);
+  NoArguCmd_sub = nh.subscribe<Ack>("GS/NoArguCmd",10,&MajorNode::NoArguCmd_sub_callback,this);
 }
 
 void MajorNode::init_publisher(ros::NodeHandle& nh)
@@ -62,13 +82,28 @@ void MajorNode::ShapeConfig_sub_callback(ShapeConfig tmp)
   Ack ack_tmp;ack_tmp.msgID = 0x43;ack_tmp.targetID = 0x00;     //ShapeConfigAck
 
   static int f_updating_count = 0;
-  if(tmp.i== tmp.j && f_updating_count == 0)        //开始存储队形数据
+  if(0== tmp.j && f_updating_count == 0)        //开始存储队形数据
   {
-    shape_buf.clear();                         //清除缓冲区
+    shape_buf.clear();                         			//清除缓冲区
     shape_buf.total_num = tmp.totol_uav_num;
     shape_buf.lead_id = tmp.i;
     shape_buf.uavID_serial[0] = tmp.i;
     f_updating_count++;
+
+		if(shape_buf.total_num == 1)													//集群就一架飞机,正确则该飞机就是头机
+		{
+			if(shape_buf.lead_id == shape_manage.OwnID)					//判断一下是不是本机ID
+			{
+				f_updating_count = 0;
+	      shape_buf.f_NewShapeOk = 1;
+	      Ack_pub.publish(ack_tmp);
+			}
+			else              																	//error
+		  {
+		    shape_buf.clear();
+		    f_updating_count = 0;
+		  }
+		}
   }
   else if(f_updating_count!=0 && tmp.i != tmp.j)
   {
@@ -95,28 +130,36 @@ void MajorNode::ShapeConfig_sub_callback(ShapeConfig tmp)
     f_updating_count = 0;
   }
 }
-
+/******************指令更改模式代码段***************************************/
 void MajorNode::TakeOff_sub_callback(Posi tmp)
 {
-  TakeOff_value = tmp;
-  if(fly_mode == Mode_Null)         //只能在停在地面时起飞指令有效
+  if(fly_mode == Mode_Null)
   {
+    TakeOff_value = tmp;
     fly_mode = Mode_TakeOff;
+    f_finish = 0;                 //清flag
     update_local_pos_now();
     local_pos_lock.x = local_pos_now.x;
     local_pos_lock.y = local_pos_now.y;
-    local_pos_lock.z = local_pos_now.z;
+    local_pos_lock.z = local_pos_now.z + 1;
+		drone->drone_arm();											//电机起转
+		ROS_INFO("Enter TakeOff mode");
   }
-
 }
 
 void MajorNode::Meet_sub_callback(ShapeConfig tmp)
 {
-  Meet_value.x = tmp.x;
-  Meet_value.y = tmp.y;
-  Meet_value.x = tmp.z;
-  Meet_value.fi = tmp.fi;
-  fly_mode = (fly_mode == Mode_TakeOff)?Mode_Meet:fly_mode;
+  if(fly_mode == Mode_TakeOff && f_finish == 1)     //起飞完成方可进入会和模式
+  {
+    f_finish = 0;
+    fly_mode = Mode_Meet;
+    Meet_value.x = tmp.x;
+    Meet_value.y = tmp.y;
+    Meet_value.x = tmp.z;
+    Meet_value.fi = tmp.fi;
+		ROS_INFO("Enter Meet mode");
+  }
+
 }
 
 void MajorNode::NoArguCmd_sub_callback(Ack tmp)
@@ -124,39 +167,72 @@ void MajorNode::NoArguCmd_sub_callback(Ack tmp)
   switch(tmp.msgID)
   {
     case msgID_Fly:
-      fly_mode = (fly_mode == Mode_Meet)?Mode_Fly:fly_mode;
+    //  if(fly_mode == Mode_Meet && f_finish == 1)
+			if(fly_mode == Mode_TakeOff && f_finish == 1)
+      {
+				ROS_INFO("Enter Fly mode");
+        fly_mode = Mode_Fly;
+        f_finish = 0;
+      }
+      else if(fly_mode == Mode_Fly)       //本来就是飞行模式
+      {
+        //检查队形缓冲是否有新队形
+        //如果有则装载并置重构标志有效
+        //否则重构标志无效，--->保持原有队形飞
+      }
       break;
     case msgID_Stop:
+			ROS_INFO("Enter Stop mode");
       fly_mode = Mode_Stop;
-
-      //使用当前位置更新local_pos_lock
+      f_finish = 0;
+      update_local_pos_now();
+      local_pos_lock = local_pos_now;
       break;
     case msgID_Return:
-      fly_mode = (fly_mode == Mode_Stop)?Mode_Return:fly_mode;
+      if((fly_mode == Mode_Stop)||(fly_mode == Mode_Fly && f_finish == 1))
+      {
+				ROS_INFO("Enter Return mode");
+        f_finish = 0;
+        fly_mode = Mode_Return;
+      }
       break;
     case msgID_Land:
-      fly_mode = (fly_mode == Mode_Stop||fly_mode == Mode_Return)?Mode_Land:fly_mode;
+      if((fly_mode == Mode_Stop)||(fly_mode == Mode_Return && f_finish == 1))
+      {
+				ROS_INFO("Enter Land mode");
+        fly_mode = Mode_Land;
+        f_finish = 0;
+      }
       break;
     default:break;
   }
 }
-
+/********************************************************************************************/
 void MajorNode::publish_InitShake(void)
 {
   GPS tmp;
-
+	//没有GPS则一直等待
+	while(drone->global_position_ref.latitude==0)
+	{
+		sleep(2);
+		ros::spinOnce();
+	}
   tmp.latitude = drone->global_position_ref.latitude;
   tmp.longitude = drone->global_position_ref.longitude;
   tmp.altitude = drone->global_position_ref.altitude;
 
+	ROS_INFO("GPS has been getted!");
+	cout<<"global_position_ref:"<<tmp.latitude<<" "<<tmp.longitude<<endl;
+
   do
   {
-    InitShake_pub.publish(tmp);
-    sleep(0.5);
+		InitShake_pub.publish(tmp);
+    sleep(2);
     ros::spinOnce();
   }while(f_InitShakeAck==0);
+	f_InitShakeAck = 0;
 
-  f_InitShakeAck = 0;
+	ROS_INFO("InitShake succeed!");
 }
 
 void MajorNode::publish_LocalFramAck(void)
@@ -168,6 +244,10 @@ void MajorNode::publish_LocalFramAck(void)
     ros::spinOnce();
     sleep(0.5);
   }while(f_LocalFrame == 0);
+
+	ROS_INFO("LocalFrame succeed!");
+	cout<<"delta_posi:"<<delta_posi.x<<" "<<delta_posi.y<<" "<<delta_posi.z<<endl;
+	cout<<"LocalFrame_value:"<<LocalFrame_value.longitude<<" "<<LocalFrame_value.latitude<<endl;
 
   Ack_pub.publish(tmp);
   f_LocalFrame = 0;
@@ -182,72 +262,6 @@ void MajorNode::wait_newshape(void)
   }
 }
 
-//从当前位置起飞到一定高度
-void MajorNode::TakeOff(void)
-{
-  update_local_pos_now();
-
-  float tmp = (local_pos_now.z - TakeOff_value.z)*(local_pos_now.z - TakeOff_value.z);
-  if(tmp<0.5)     //距离目标起飞高度小于阈值，则自动切换模式至Stop模式
-  {
-    local_pos_lock.z = TakeOff_value.z;
-    fly_mode = Mode_Stop;
-  }
-  else                                        //计算飞机位置并更新
-  {
-      local_pos_lock.z = (local_pos_now.z < TakeOff_value.z)?(local_pos_now.z + 0.01):(local_pos_now.z - 0.01);   //结合usleep的时间，约为0.5m/s的垂直速度
-  }
-  local_pos_control(local_pos_lock,0);
-}
-
-//静态集结的功能函数
-void MajorNode::Meet(void)
-{
-  //队形数据OK且未使用过，则首先进行队形的装载和处理
-  if(shape_buf.f_ShapeMsgUsed == 0 && shape_buf.f_NewShapeOk == 1)              //如果在meet的过程中又来了新的队形，实际上会立即生效了----bug
-  {
-    shape_buf.f_ShapeMsgUsed = 1;
-    shape_manage.shape_real = shape_buf;
-    shape_manage.Update();
-    //（计算）本机的理想汇合点
-    Meet_TargetPosi = (shape_manage.OwnID == shape_manage.shape_real.lead_id)?Meet_value:(Meet_value + shape_manage.IdealDelta_with_leader);
-  }
-  update_local_pos_now();
-  /********计算位置并更新 ****************/
-  /*暂时采用先水平移动再垂直运动的会和策略*/
-  /*此段代码可用会和算法替代*/
-  //x方向
-  float tmp1 = (local_pos_now.x - Meet_TargetPosi.x)*(local_pos_now.x - Meet_TargetPosi.x);
-  if(tmp1>0.5)
-    local_pos_lock.x = (local_pos_now.x < Meet_TargetPosi.x)?(local_pos_now.x + 0.01):(local_pos_now.x - 0.01);
-  else
-    local_pos_lock.x = Meet_TargetPosi.x;
-  //y方向
-  float tmp2 = (local_pos_now.y - Meet_TargetPosi.y)*(local_pos_now.y - Meet_TargetPosi.y);
-  if(tmp2>0.5)
-    local_pos_lock.y = (local_pos_now.y < Meet_TargetPosi.y)?(local_pos_now.y + 0.01):(local_pos_now.y - 0.01);
-  else
-    local_pos_lock.y = Meet_TargetPosi.x;
-  //z方向
-  float tmp =  tmp1 + tmp2;
-  if(tmp<1)         //水平方向到达预定位置(小于阈值)
-  {
-    float tmp3 = (local_pos_now.z - Meet_TargetPosi.z)*(local_pos_now.z - Meet_TargetPosi.z);
-    if(tmp3<0.5)     //垂直方向距离差小于阈值
-    {
-      local_pos_lock.x = Meet_TargetPosi.x;
-      local_pos_lock.y = Meet_TargetPosi.y;
-      local_pos_lock.z = Meet_TargetPosi.z;
-      fly_mode = Mode_Stop;                   //退出Meet模式
-    }
-    else
-    {
-      local_pos_lock.z = (local_pos_now.z < Meet_TargetPosi.z)?(local_pos_now.z + 0.01):(local_pos_now.z - 0.01);
-    }
-  }
-  local_pos_control(local_pos_lock,0);
-  /**************************************/
-}
 
 //将飞机的局部坐标系坐标转换到多机LocalFrame下
 void MajorNode::update_local_pos_now(void)
@@ -255,7 +269,6 @@ void MajorNode::update_local_pos_now(void)
  local_pos_now.x = drone->local_position.x + delta_posi.x;
  local_pos_now.y = drone->local_position.y + delta_posi.y;
  local_pos_now.z = drone->local_position.z + delta_posi.z;
-
 }
 
 //由多机LocalFrame下坐标计算在本机的局部坐标系下坐标

@@ -2,12 +2,11 @@
 #define _MAJOR_H
 
 #include <ros/ros.h>
+#include <dji_sdk/dji_drone.h>
 
 #include <math.h>
 #include <iostream>
 #include <memory.h>
-
-
 
 #include "zigbee/GPS.h"
 #include "std_msgs/Empty.h"
@@ -26,11 +25,12 @@ using namespace zigbee;
 #define C_PI (double) 3.141592653589793
 #define DEG2RAD(DEG) ((DEG)*((C_PI)/(180.0)))
 
+extern DJIDrone* drone;
 
 class MajorNode
 {
 public:
-  Posi delta_posi;
+  Posi delta_posi;                            //从多机的LocalFrame原点指向单机局部坐标系原点的向量
   FLY_MODE fly_mode = Mode_Null;              //模式
   Posi local_pos_now;                         //本机在LocalFrame下的坐标，使用之前一定要调用更新函数
   Posi local_pos_lock;                        //要锁定的位置 x\y\z
@@ -42,8 +42,7 @@ public:
   //flag
   int f_InitShakeAck = 0;
   int f_LocalFrame = 0;
-  int f_MeetOK = 0;
-
+  int f_finish = 0;                         //某一个模式下，动作完成标志
 
 public:
   //value
@@ -99,6 +98,9 @@ public:
   //动作函数
   void TakeOff(void);
   void Meet(void);
+  void Fly();
+  void Return();
+  void Land(void);
 
 //将飞机的局部坐标系坐标转换到多机LocalFrame下
   void update_local_pos_now(void);
@@ -107,7 +109,7 @@ public:
   //通过多机局部坐标系下坐标控制飞机位置
   void local_pos_control(Posi tmp,float fi);
 
-  MajorNode(ros::NodeHandle& nh);
+  MajorNode(ros::NodeHandle& nh,ros::NodeHandle& nh_private);
   ~MajorNode();
 };
 

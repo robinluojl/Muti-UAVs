@@ -34,7 +34,7 @@ class SHAPE{
 public:
   int total_num = 0;
   int lead_id = 0;
-  int uavID_serial[10];         //记录
+  int uavID_serial[10];         //记录各UAVID
   SHAPE_MATRIX shape_matrix[10][10];
 
   int f_ShapeMsgUsed = 0;     //本组队形数据是否被装载过？
@@ -69,7 +69,7 @@ public:
 
   int OwnID;                                   //自己的ID
   int target_ID_num;						            	 //需要几架飞机信息？
-	unsigned char target_ID[10];		             //需要哪几架飞机的ID？
+	unsigned char target_ID[10];		             //需要msg飞机的ID
 
   SHAPE_MATRIX IdealDelta_with_leader;         //与头机的理想位置差
   SHAPE_MATRIX IdealDelta_with_neighbors[10];  //与众邻居的理想位置差
