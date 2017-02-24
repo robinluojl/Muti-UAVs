@@ -78,7 +78,8 @@ void DJISDKNode::broadcast_callback()
         if (global_position.ts != 0 && global_position_ref_seted == 0 && global_position.latitude != 0 && global_position.health > 3) {
             global_position_ref = global_position;
             global_position_ref_seted = 1;
-						ROS_INFO("global_position_ref is set");
+						ROS_INFO("global_position_ref of dji_sdk is set");
+						std::cout<<global_position_ref.longitude<<" "<<global_position_ref.latitude<<std::endl;
         }
 
         //update local_position msg
@@ -328,7 +329,7 @@ int DJISDKNode::init_parameters(ros::NodeHandle& nh_private)
     int uart_or_usb;
 
 
-    nh_private.param("serial_name", serial_name, std::string("/dev/ttyTHS1"));
+    nh_private.param("serial_name", serial_name, std::string("/dev/ttyTHS0"));
     nh_private.param("baud_rate", baud_rate, 230400);
     nh_private.param("app_id", app_id, 1022384);
     nh_private.param("app_version", app_version, 1);

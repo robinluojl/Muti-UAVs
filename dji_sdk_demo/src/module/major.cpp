@@ -211,23 +211,22 @@ void MajorNode::NoArguCmd_sub_callback(Ack tmp)
 void MajorNode::publish_InitShake(void)
 {
   GPS tmp;
-	//没有GPS则一直等待
-	while(drone->global_position_ref.latitude==0)
+	//home未获取则一直等待
+	while(drone->global_position_ref_seted==0)
 	{
-		sleep(2);
+		sleep(1);
 		ros::spinOnce();
 	}
   tmp.latitude = drone->global_position_ref.latitude;
   tmp.longitude = drone->global_position_ref.longitude;
   tmp.altitude = drone->global_position_ref.altitude;
 
-	ROS_INFO("GPS has been getted!");
 	cout<<"global_position_ref:"<<tmp.latitude<<" "<<tmp.longitude<<endl;
 
   do
   {
 		InitShake_pub.publish(tmp);
-    sleep(2);
+    sleep(1);
     ros::spinOnce();
   }while(f_InitShakeAck==0);
 	f_InitShakeAck = 0;
@@ -242,14 +241,15 @@ void MajorNode::publish_LocalFramAck(void)
 
   do{
     ros::spinOnce();
-    sleep(0.5);
+    sleep(1);
   }while(f_LocalFrame == 0);
 
 	ROS_INFO("LocalFrame succeed!");
-	cout<<"delta_posi:"<<delta_posi.x<<" "<<delta_posi.y<<" "<<delta_posi.z<<endl;
 	cout<<"LocalFrame_value:"<<LocalFrame_value.longitude<<" "<<LocalFrame_value.latitude<<endl;
+	cout<<"delta_posi:"<<delta_posi.x<<" "<<delta_posi.y<<" "<<delta_posi.z<<endl;
 
-  Ack_pub.publish(tmp);
+  Ack_pub.publish(tmp);sleep(0.1);
+	Ack_pub.publish(tmp);
   f_LocalFrame = 0;
 }
 

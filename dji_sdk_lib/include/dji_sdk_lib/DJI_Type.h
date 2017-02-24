@@ -5,7 +5,7 @@
  *  @brief
  *  Type definition for DJI onboardSDK library.
  *  Officially Maintained
- *  
+ *
  *  @copyright
  *  Copyright 2016 DJI. All rights reserved.
  * */
@@ -27,7 +27,7 @@
 
 #define NAME(x) #x
 
-//! Define the UNUSED macro to suppress compiler warnings about unused arguments 
+//! Define the UNUSED macro to suppress compiler warnings about unused arguments
 #ifdef __GNUC__
 #define __UNUSED __attribute__((__unused__))
 #define __DELETE(x) delete (char *) x
@@ -131,7 +131,7 @@ const size_t MAX_ACK_SIZE = 64;
 const size_t M100_MAX_ACK_SIZE = 64;
 const size_t A3_MAX_ACK_SIZE = 63;
 
-//! The CoreAPI class definition is detailed in DJI_API.h 
+//! The CoreAPI class definition is detailed in DJI_API.h
 class CoreAPI;
 
 //! The Header struct is meant to handle the open protocol header.
@@ -142,12 +142,12 @@ typedef struct Header
   unsigned int version : 6;
   unsigned int sessionID : 5;
   unsigned int isAck : 1;
-  //! @warning this field will change reversed0 --> reserved0 in the next release 
+  //! @warning this field will change reversed0 --> reserved0 in the next release
   unsigned int reversed0 : 2; // always 0
 
   unsigned int padding : 5;
   unsigned int enc : 3;
-  //! @warning this field will change reversed1 --> reserved1 in the next release 
+  //! @warning this field will change reversed1 --> reserved1 in the next release
   unsigned int reversed1 : 24;
 
   unsigned int sequenceNumber : 16;
@@ -157,7 +157,7 @@ typedef struct Header
 //! The CallBack function pointer is used as an argument in api->send calls
 typedef void (*CallBack)(DJI::onboardSDK::CoreAPI *, Header *, UserData);
 
-//! The CallBackHandler struct allows users to encapsulate callbacks and data in one struct 
+//! The CallBackHandler struct allows users to encapsulate callbacks and data in one struct
 typedef struct CallBackHandler
 {
   CallBack callback;
@@ -236,7 +236,7 @@ typedef uint8_t BatteryData;
  * Gimbal Data
  */
 typedef struct GimbalAngleData
-{  
+{
   int16_t yaw;
   int16_t roll;
   int16_t pitch;
@@ -362,10 +362,10 @@ typedef struct WayPointInitACK
 typedef struct DroneVersionACK
 {
   unsigned char ack[MAX_ACK_SIZE];
-};
+}DroneVersionACK;
 
 typedef union MissionACKUnion
-{ 
+{
   uint8_t raw_ack_array[MAX_ACK_SIZE];
   DroneVersionACK droneVersion;
   MissionACK missionACK;
@@ -384,7 +384,7 @@ typedef union MissionACKUnion
 
   WayPointDataACK waypointDataACK;
   WayPointVelocityACK waypointVelocityACK;
-} MissionACKUnion; 
+} MissionACKUnion;
 
 typedef struct QuaternionData
 {
@@ -427,7 +427,7 @@ typedef struct PositionData
   float64_t longitude;
   //! @warning the 'altitude' field will be renamed in a future release.
   //! @note the altitude value can be configured to output GPS-only data
-  //!       or a fusion of GPS and Baro in Assistant 2's SDK Tab, 'ALTI' 
+  //!       or a fusion of GPS and Baro in Assistant 2's SDK Tab, 'ALTI'
   float32_t altitude;
 
   //! @warning the 'height' field will be renamed in a future release.
@@ -449,7 +449,7 @@ typedef struct RadioData
   int16_t gear;
 } RadioData;
 
-//! @note This struct will replace RadioData in the next release. 
+//! @note This struct will replace RadioData in the next release.
 typedef struct RCData
 {
   int16_t roll;
@@ -477,7 +477,7 @@ typedef struct MagData
 } MagData;
 
 //! @note This struct is provided as a means for users to provide sigle GPS points to the SDK.
-//!       It does not follow standard SDK GPS datatypes. This may change in a future release. 
+//!       It does not follow standard SDK GPS datatypes. This may change in a future release.
 typedef struct GPSPositionData
 {
   float64_t latitude;
@@ -539,7 +539,7 @@ typedef struct RTKData
   float32_t velocityEast;
   //! @warning the 'velocityGround' field will be renamed to velocityDown in the next release.
   float32_t velocityGround;
-  
+
   int16_t yaw;
   uint8_t posFlag;
   uint8_t yawFlag;
@@ -554,7 +554,7 @@ typedef struct GPSData
   uint32_t time;
   int32_t longitude;
   int32_t latitude;
-  //! @warning the 'Hmsl' field will be renamed in a future release.    
+  //! @warning the 'Hmsl' field will be renamed in a future release.
   int32_t Hmsl;
 
   float32_t velocityNorth;

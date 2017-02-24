@@ -76,21 +76,30 @@ void MajorNode::Fly()
 {
   int circleRadius;
   int circleHeight;
-  float Phi, circleRadiusIncrements;
-  int x_center, y_center, yaw_local;
+  float Phi=0, circleRadiusIncrements;
+  int x_center, y_center;
 
   static float x;
   static float y;
+  static float z;
   circleRadius = 15;
-  circleHeight = 10;
+  circleHeight = 15;
 
 
   if(!f_finish)
   {
     x_center = drone->local_position.x;
     y_center = drone->local_position.y;
+    z = drone->local_position.z;
 
     circleRadiusIncrements = 0.01;
+
+    for(int i = 0; i < 500; i ++)
+    {
+        z+=0.02;
+        drone->local_position_control(x_center ,y_center ,z, 0);
+        usleep(10000);
+    }
 
     for(int j = 0; j < 750; j ++)
     {
@@ -98,7 +107,7 @@ void MajorNode::Fly()
         y =  y_center;
         circleRadiusIncrements = circleRadiusIncrements + 0.02;
         drone->local_position_control(x ,y ,circleHeight, 0);
-        usleep(10000);
+        usleep(20000);
     }
 
     /* start to draw circle */

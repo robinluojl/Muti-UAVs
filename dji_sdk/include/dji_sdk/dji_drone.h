@@ -85,6 +85,7 @@ private:
 	ros::Subscriber mobile_data_subscriber;
 
 public:
+    int global_position_ref_seted = 0;
 
 	  dji_sdk::Acceleration acceleration;
 		dji_sdk::AttitudeQuaternion attitude_quaternion;
@@ -162,6 +163,13 @@ private:
 	void global_position_subscriber_callback(dji_sdk::GlobalPosition global_position)
 	{
 		this->global_position = global_position;
+    if (global_position_ref_seted == 0 && global_position.ts != 0 && global_position.latitude != 0 && global_position.health > 3)
+    {
+        global_position_ref = global_position;
+        global_position_ref_seted = 1;
+        ROS_INFO("global_position_ref of dji_sdk_demo is set");
+        std::cout<<global_position_ref.longitude<<" "<<global_position_ref.latitude<<std::endl;
+    }
 	}
 
 	void local_position_subscriber_callback(dji_sdk::LocalPosition local_position)
@@ -511,7 +519,7 @@ public:
         	flight_status_subscriber = nh.subscribe<std_msgs::UInt8>("dji_sdk/flight_status", 10, &DJIDrone::flight_status_subscriber_callback, this);
         	gimbal_subscriber = nh.subscribe<dji_sdk::Gimbal>("dji_sdk/gimbal", 10, &DJIDrone::gimbal_subscriber_callback, this);
         	global_position_subscriber = nh.subscribe<dji_sdk::GlobalPosition>("dji_sdk/global_position", 10, &DJIDrone::global_position_subscriber_callback, this);
-        	local_position_subscriber = nh.subscribe<dji_sdk::LocalPosition>("dji_sdk/local_position", 10, &DJIDrone::local_position_subscriber_callback, this);
+          local_position_subscriber = nh.subscribe<dji_sdk::LocalPosition>("dji_sdk/local_position", 10, &DJIDrone::local_position_subscriber_callback, this);
         	power_status_subscriber = nh.subscribe<dji_sdk::PowerStatus>("dji_sdk/power_status", 10, &DJIDrone::power_status_subscriber_callback, this);
         	rc_channels_subscriber = nh.subscribe<dji_sdk::RCChannels>("dji_sdk/rc_channels", 10, &DJIDrone::rc_channels_subscriber_callback, this);
         	velocity_subscriber = nh.subscribe<dji_sdk::Velocity>("dji_sdk/velocity", 10, &DJIDrone::velocity_subscriber_callback, this);

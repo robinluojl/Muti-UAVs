@@ -100,10 +100,10 @@ private:
         time_stamp_publisher = nh.advertise<dji_sdk::TimeStamp>("dji_sdk/time_stamp", 10);
 	data_received_from_remote_device_publisher = nh.advertise<dji_sdk::TransparentTransmissionData>("dji_sdk/data_received_from_remote_device",10);
 
-	//TODO: Identify the drone version first	
+	//TODO: Identify the drone version first
 	A3_GPS_info_publisher = nh.advertise<dji_sdk::A3GPS>("dji_sdk/A3_GPS", 10);
 	A3_RTK_info_publisher = nh.advertise<dji_sdk::A3RTK>("dji_sdk/A3_RTK", 10);
-	
+
 
 
     }
